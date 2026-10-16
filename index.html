@@ -1,0 +1,145 @@
+HTML
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123c2d">
+<title>LogeClair Bénin | Trouve ton logement</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7f5;color:#202820}
+header{background:#123c2d;color:white;padding:22px 16px}
+.logo{font-size:25px;font-weight:bold}
+.logo span{color:#b8ed83}
+header p{font-size:14px;margin-bottom:0}
+main{max-width:650px;margin:auto;padding:16px}
+.hero{background:#e4f1e7;padding:22px 18px;border-radius:18px}
+h1{font-size:26px;line-height:1.2;margin-top:0}
+.hero p{line-height:1.5;color:#405647}
+input,select,textarea,button{width:100%;padding:13px;margin:7px 0;border:1px solid #d5ddd6;border-radius:9px;font-size:15px}
+button{background:#176b45;color:white;border:0;font-weight:bold;cursor:pointer}
+h2{font-size:20px;margin-top:26px}
+.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 3px 12px #0000000b}
+.price{font-size:20px;font-weight:bold;color:#176b45}
+.tag{display:inline-block;background:#e4f1e7;padding:6px 9px;border-radius:7px;font-size:12px}
+small{color:#647067;line-height:1.5}
+footer{text-align:center;padding:25px;color:#647067;font-size:12px}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="logo">LogeClair <span>Bénin</span></div>
+  <p>Le logement, en toute clarté.</p>
+</header>
+
+<main>
+  <section class="hero">
+    <span class="tag">📍 Abomey-Calavi et environs</span>
+    <h1>Trouve ton prochain logement sans perdre ton temps.</h1>
+    <p>Chambres, studios et maisons à louer. Consulte les informations et contacte directement le propriétaire.</p>
+    <button onclick="document.getElementById('recherche').scrollIntoView({behavior:'smooth'})">
+      🔎 Rechercher un logement
+    </button>
+  </section>
+
+  <section id="recherche">
+    <h2>🔍 Quel logement recherches-tu ?</h2>
+    <input id="quartier" placeholder="Quartier recherché">
+    <select id="type">
+      <option value="">Tous les types de logements</option>
+      <option value="Chambre simple">Chambre simple</option>
+      <option value="Chambre avec douche">Chambre avec douche</option>
+      <option value="Studio">Studio</option>
+      <option value="Appartement">Appartement</option>
+      <option value="Maison">Maison</option>
+    </select>
+    <input id="budget" type="number" placeholder="Budget mensuel maximum (FCFA)">
+    <button onclick="rechercher()">Rechercher</button>
+  </section>
+
+  <section>
+    <h2>🏠 Logements disponibles</h2>
+    <div id="annonces"></div>
+    <p id="vide" class="card">
+      Aucune annonce publiée pour le moment.<br>
+      <small>Les logements doivent être ajoutés et vérifiés avant leur publication.</small>
+    </p>
+  </section>
+
+  <section>
+    <h2>📢 Tu proposes un logement ?</h2>
+    <p><small>Soumets les informations de ton logement. Elles devront être vérifiées avant publication.</small></p>
+
+    <form id="formAnnonce">
+      <input id="nom" placeholder="Nom du propriétaire" required>
+      <input id="telephone" type="tel" placeholder="Téléphone WhatsApp" required>
+      <input id="ville" value="Abomey-Calavi" placeholder="Ville" required>
+      <input id="quartierAnnonce" placeholder="Quartier du logement" required>
+
+      <select id="typeAnnonce" required>
+        <option value="">Type de logement</option>
+        <option>Chambre simple</option>
+        <option>Chambre avec douche</option>
+        <option>Studio</option>
+        <option>Appartement</option>
+        <option>Maison</option>
+      </select>
+
+      <input id="loyer" type="number" min="1" placeholder="Loyer mensuel (FCFA)" required>
+      <input id="caution" type="number" min="0" placeholder="Caution (FCFA)">
+      <textarea id="description" placeholder="Description, conditions et frais éventuels"></textarea>
+      <button type="submit">Envoyer ma proposition</button>
+    </form>
+    <p id="message"></p>
+  </section>
+</main>
+
+<footer>
+  LogeClair Bénin © 2026<br>
+  Pour un logement, des informations claires.
+</footer>
+
+<script>
+function rechercher(){
+  const quartier=document.getElementById('quartier').value.toLowerCase();
+  const type=document.getElementById('type').value;
+  const budget=Number(document.getElementById('budget').value)||Infinity;
+
+  document.querySelectorAll('.annonce').forEach(c=>{
+    const okQuartier=c.dataset.quartier.toLowerCase().includes(quartier);
+    const okType=!type||c.dataset.type===type;
+    const okBudget=Number(c.dataset.loyer)<=budget;
+    c.style.display=okQuartier&&okType&&okBudget?'block':'none';
+  });
+}
+
+document.getElementById('formAnnonce').addEventListener('submit',function(e){
+  e.preventDefault();
+
+  const donnees={
+    nom:document.getElementById('nom').value.trim(),
+    telephone:document.getElementById('telephone').value.trim(),
+    ville:document.getElementById('ville').value.trim(),
+    quartier:document.getElementById('quartierAnnonce').value.trim(),
+    type:document.getElementById('typeAnnonce').value,
+    loyer:document.getElementById('loyer').value,
+    caution:document.getElementById('caution').value||'Non précisée',
+    description:document.getElementById('description').value.trim()
+  };
+
+  const texte='Proposition de logement - LogeClair Bénin%0A'
+    +Object.entries(donnees).map(([k,v])=>encodeURIComponent(k+': '+v)).join('%0A');
+
+  document.getElementById('message').textContent=
+    'Formulaire prêt. Pour transmettre cette proposition, une connexion WhatsApp doit encore être configurée. Aucune annonce n’a été publiée.';
+
+  // Le formulaire n'enregistre pas encore les données dans la base de données.
+  console.log(donnees,texte);
+});
+</script>
+</body>
+</html>
