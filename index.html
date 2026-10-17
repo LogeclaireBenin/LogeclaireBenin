@@ -102,44 +102,167 @@ footer{text-align:center;padding:25px;color:#647067;font-size:12px}
   LogeClair Bénin © 2026<br>
   Pour un logement, des informations claires.
 </footer>
-
 <script>
-function rechercher(){
-  const quartier=document.getElementById('quartier').value.toLowerCase();
-  const type=document.getElementById('type').value;
-  const budget=Number(document.getElementById('budget').value)||Infinity;
+const SUPABASE_URL = 'https://lvoekboyagucgjytkpyp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_NfYT1KBZ0Pkij8YIxAKPYg_tzprszM2';
 
-  document.querySelectorAll('.annonce').forEach(c=>{
-    const okQuartier=c.dataset.quartier.toLowerCase().includes(quartier);
-    const okType=!type||c.dataset.type===type;
-    const okBudget=Number(c.dataset.loyer)<=budget;
-    c.style.display=okQuartier&&okType&&okBudget?'block':'none';
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+
+const annonces = document.getElementById('annonces');
+const message = document.getElementById('message');
+const formulaire = document.getElementById('formAnnonce');
+
+function securiser(texte) {
+  return String(texte ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[c]);
+}
+
+function afficherLogements(liste) {
+  annonces.innerHTML = '';
+
+  const vide = document.getElementById('vide');
+  vide.style.display = liste.length ? 'none' : 'block';
+
+  liste.forEach(logement => {
+    const carte = document.createElement('article');
+    carte.className = 'card annonce';
+    carte.dataset.quartier = logement.quartier || '';
+    carte.dataset.type = logement.type_logement || '';
+    carte.dataset.loyer = logement.prix || 0;
+
+    const telephone = (logement.whatsapp || logement.telephone || '')
+      .replace(/[^\d]/g, '');
+
+    carte.innerHTML = `
+      <span class="tag">${securiser(logement.type_logement)}</span>
+      <h3>${securiser(logement.ville)} — ${securiser(logement.quartier)}</h3>
+      <p>${securiser(logement.description || 'Aucune description disponible.')}</p>
+      <p class="price">${Number(logement.prix || 0).toLocaleString('fr-FR')} FCFA/mois</p>
+      ${
+        telephone
+          ? `<a href="https://wa.me/${telephone}" target="_blank" rel="noopener">
+               <button type="button">Contacter sur WhatsApp</button>
+             </a>`
+          : ''
+      }
+    `;
+
+    annonces.appendChild(carte);
   });
 }
 
-document.getElementById('formAnnonce').addEventListener('submit',function(e){
+async function chargerLogements() {
+  try {
+    const reponse = await fetch(
+      SUPABASE_URL +
+      '/rest/v1/logements?select=id,type_logement,description,ville,quartier,prix,telephone,whatsapp&statut=eq.publie&order=created_at.desc',
+      { headers: HEADERS }
+    );
+
+    if (!reponse.ok) {
+      throw new Error('Erreur lors du chargement des annonces.');
+    }
+
+    const liste = await reponse.json();
+    afficherLogements(liste);
+  } catch (erreur) {
+    console.error(erreur);
+    document.getElementById('vide').textContent =
+      'Impossible de charger les logements. Réessaie plus tard.';
+  }
+}
+
+function rechercher() {
+  const quartier = document.getElementById('quartier')
+    .value.trim().toLowerCase();
+
+  const type = document.getElementById('type').value;
+
+  const budget =
+    Number(document.getElementById('budget').value) || Infinity;
+
+  document.querySelectorAll('.annonce').forEach(carte => {
+    const okQuartier =
+      (carte.dataset.quartier || '').toLowerCase().includes(quartier);
+
+    const okType = !type || carte.dataset.type === type;
+
+    const okBudget = Number(carte.dataset.loyer) <= budget;
+
+    carte.style.display =
+      okQuartier && okType && okBudget ? 'block' : 'none';
+  });
+}
+
+formulaire.addEventListener('submit', async function(e) {
   e.preventDefault();
 
-  const donnees={
-    nom:document.getElementById('nom').value.trim(),
-    telephone:document.getElementById('telephone').value.trim(),
-    ville:document.getElementById('ville').value.trim(),
-    quartier:document.getElementById('quartierAnnonce').value.trim(),
-    type:document.getElementById('typeAnnonce').value,
-    loyer:document.getElementById('loyer').value,
-    caution:document.getElementById('caution').value||'Non précisée',
-    description:document.getElementById('description').value.trim()
+  const bouton = formulaire.querySelector('button[type="submit"]');
+  bouton.disabled = true;
+  bouton.textContent = 'Envoi en cours...';
+  message.textContent = '';
+
+  const donnees = {
+    nom_proprietaire: document.getElementById('nom').value.trim(),
+    telephone: document.getElementById('telephone').value.trim(),
+    whatsapp: document.getElementById('telephone').value.trim(),
+    ville: document.getElementById('ville').value.trim(),
+    quartier: document.getElementById('quartierAnnonce').value.trim(),
+    type_logement: document.getElementById('typeAnnonce').value,
+    prix: Number(document.getElementById('loyer').value),
+    description:
+      document.getElementById('description').value.trim() +
+      '\nCaution : ' +
+      (document.getElementById('caution').value || 'Non précisée') +
+      ' FCFA',
+    statut: 'en_attente'
   };
 
-  const texte='Proposition de logement - LogeClair Bénin%0A'
-    +Object.entries(donnees).map(([k,v])=>encodeURIComponent(k+': '+v)).join('%0A');
+  try {
+    const reponse = await fetch(
+      SUPABASE_URL + '/rest/v1/logements',
+      {
+        method: 'POST',
+        headers: {
+          ...HEADERS,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(donnees)
+      }
+    );
 
-  document.getElementById('message').textContent=
-    'Formulaire prêt. Pour transmettre cette proposition, une connexion WhatsApp doit encore être configurée. Aucune annonce n’a été publiée.';
+    if (!reponse.ok) {
+      const detail = await reponse.text();
+      console.error(detail);
+      throw new Error('La proposition n’a pas pu être enregistrée.');
+    }
 
-  // Le formulaire n'enregistre pas encore les données dans la base de données.
-  console.log(donnees,texte);
+    message.textContent =
+      '✅ Proposition envoyée ! Elle sera vérifiée avant publication.';
+
+    formulaire.reset();
+    document.getElementById('ville').value = 'Abomey-Calavi';
+
+  } catch (erreur) {
+    console.error(erreur);
+    message.textContent =
+      '❌ Envoi impossible. Vérifie ta connexion et réessaie.';
+  } finally {
+    bouton.disabled = false;
+    bouton.textContent = 'Envoyer ma proposition';
+  }
 });
+
+chargerLogements();
 </script>
 </body>
 </html>
