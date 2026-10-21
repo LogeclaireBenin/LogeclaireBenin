@@ -24,8 +24,7 @@ section.section{padding:20px 0}.section-head{margin-bottom:15px}h2{font-size:cla
 </main><footer><div class="wrap footer-inner"><div><a class="brand" href="#" style="color:white"><span class="mark">⌂</span><span>LogeClair <span class="brand-orange">Bénin</span></span></a><p>Le logement, en toute clarté.</p></div><p>© 2026 LogeClair Bénin<br>Abomey-Calavi et environs</p></div></footer>
 <script>
 const SUPABASE_URL='https://lvoekboyagucgjytkpyp.supabase.co';
-const SUPABASE_KEY='sb_publishable_NfYT1KBZ0Pkij8YIxAKPYg_tzprszM2';
-const HEADERS={apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
+const SUPABASE_KEY='sb_publishable_NfYT1KBZ0Pkij8YIxAKPYg_tzprszM2'; const HEADERS={apikey:SUPABASE_KEY,'Content-Type':'application/json'};
 const annonces=document.getElementById('annonces'),message=document.getElementById('message'),formulaire=document.getElementById('formAnnonce'),compteur=document.getElementById('compteur');
 function securiser(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function telephoneWhatsApp(v){let n=String(v||'').replace(/\D/g,'');if(n.startsWith('00'))n=n.slice(2);if(n.startsWith('229'))return n;if(n.startsWith('0'))n=n.slice(1);return n?'229'+n:'';}
